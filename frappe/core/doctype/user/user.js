@@ -78,6 +78,7 @@ frappe.ui.form.on('User', {
 				}
 			}
 		}
+
 	},
 	validate: function(frm) {
 		if(frm.roles_editor) {
@@ -95,7 +96,7 @@ frappe.ui.form.on('User', {
 			frm.toggle_enable('email', doc.__islocal);
 		}
 	}
-})
+});
 
 
 frappe.ModuleEditor = Class.extend({
