@@ -61,7 +61,9 @@ frappe.views.ListView = Class.extend({
 		// add workflow field (as priority)
 		this.workflow_state_fieldname = frappe.workflow.get_state_fieldname(this.doctype);
 		if(this.workflow_state_fieldname) {
-			add_field(this.workflow_state_fieldname);
+			if (!frappe.workflow.workflows[this.doctype]["override_status"]) {
+				add_field(this.workflow_state_fieldname);
+			}
 			this.stats.push(this.workflow_state_fieldname);
 		}
 
@@ -72,6 +74,11 @@ frappe.views.ListView = Class.extend({
 				} else {
 					add_field(d.fieldname);
 				}
+
+				if(d.fieldtype=="Select") {
+					if(me.stats.indexOf(d.fieldname)===-1) me.stats.push(d.fieldname);
+				}
+
 				// currency field for symbol (multi-currency)
 				if(d.fieldtype=="Currency" && d.options) {
 					if(d.options.indexOf(":")!=-1) {
@@ -264,7 +271,6 @@ frappe.views.ListView = Class.extend({
 				doctype: this.doctype,
 				docname: data.name
 			},
-			sidebar_stats: me.doclistview.sidebar_stats,
 			user_tags: data._user_tags,
 			on_change: function(user_tags) {
 				data._user_tags = user_tags;
