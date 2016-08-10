@@ -142,7 +142,8 @@ class EmailAccount(Document):
 			"password": self.password,
 			"use_imap": self.use_imap,
 			"uid_validity":self.uid_validity,
-			"uidnext":self.uidnext
+			"uidnext":self.uidnext,
+			"no_remaining":self.no_remaining
 		}
 
 		if not args.get("host"):
@@ -241,10 +242,10 @@ class EmailAccount(Document):
 				else:
 					frappe.db.commit()
 					attachments = [d.file_name for d in communication._attachments]
-
-					if self.no_remaining == 0:
- 						if communication.reference_doctype:
- 							if not frappe.db.get_value("Communication", communication.message_id, "message_id") and not communication.unread_notification_sent:
+					
+					if self.no_remaining == '0':
+						if communication.reference_doctype:
+							if not communication.timeline_hide and not communication.unread_notification_sent:
 								communication.notify(attachments=attachments, fetched_from_email_account=True)
 
 			#update attachment folder size as suspended for emails
@@ -300,6 +301,9 @@ class EmailAccount(Document):
 			# dont count emails sent by the system get those
 			raise SentEmailInInbox
 		contact = set_customer_supplier(email.from_email,email.To)
+		if email.message_id:
+			timeline_hide =  frappe.db.get_value("Communication", {"message_id":email.message_id}, "name")
+			#frappe.db.sql("select name from tabCommunication where message_id =  %(message_id)s limit 1",{"message_id":email.message_id})
 
 		communication = frappe.get_doc({
 			"doctype": "Communication",
@@ -320,12 +324,13 @@ class EmailAccount(Document):
 			"actualdate":email.date,
 			"has_attachment": 1 if email.attachments else 0,
 			"seen":seen,
-			"unique_id":email.unique_id
+			"unique_id":email.unique_id,
+			"timeline_hide": timeline_hide
 		})
 
 		self.set_thread(communication, email)
 
-		if not self.no_remaining == 0:
+		if not self.no_remaining == '0':
 			communication.unread_notification_sent = 1
 
 		communication.flags.in_receive = True
@@ -531,7 +536,7 @@ def test_internet(host="8.8.8.8", port=53, timeout=3):
 		return True
 	except Exception as ex:
 		print ex.message
-        return False
+		return False
 
 def notify_unreplied():
 	"""Sends email notifications if there are unreplied Communications
