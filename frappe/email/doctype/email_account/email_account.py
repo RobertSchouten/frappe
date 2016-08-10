@@ -181,7 +181,7 @@ class EmailAccount(Document):
 		return email_server
 
 	def handle_incoming_connect_error(self, description):
-		if frappe.utils.test_internet():
+		if test_internet():
 			self.db_set("enable_incoming", 0)
 
 			for user in get_system_managers(only_name=True):
@@ -513,7 +513,7 @@ def pull(now=False):
 	"""Will be called via scheduler, pull emails from all enabled Email accounts."""
 	import frappe.tasks
 	if frappe.cache().get_value("workers:no-internet") == True:
-	 	if frappe.utils.test_internet():
+	 	if test_internet():
 	 		frappe.cache().set_value("workers:no-internet", False)
 	 	else:	
 	 		return
