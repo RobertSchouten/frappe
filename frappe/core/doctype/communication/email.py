@@ -176,8 +176,9 @@ def get_recipients_and_cc(doc, recipients, cc, fetched_from_email_account=False)
 		original_recipients, recipients = recipients, []
 
 		# send email to the sender of the previous email in the thread which this email is a reply to
-		if doc.previous_email_sender:
-			recipients.append(doc.previous_email_sender)
+		#provides erratic results and can send external 
+		#if doc.previous_email_sender:
+		#	recipients.append(doc.previous_email_sender)
 
 		# cc that was received in the email
 		original_cc = split_emails(doc.cc)
