@@ -378,10 +378,13 @@ class EmailAccount(Document):
 
 		if in_reply_to:
 			# reply to a communication sent from the system
-			first = frappe.db.get_value("Communication", {"message_id": in_reply_to}, ["name","reference_doctype","reference_name"],as_dict=1)
-			
-			
-		elif email.message_id:
+			reply_found = frappe.db.get_value("Communication", {"message_id": in_reply_to}, ["name","reference_doctype","reference_name"],as_dict=1)
+			if reply_found:
+				# set in_reply_to of current communication
+				communication.in_reply_to = reply_found.name
+				communication.reference_doctype = reply_found.reference_doctype
+				communication.reference_name = reply_found.reference_name
+		if email.message_id:
 			first = frappe.db.get_value("Communication", {"message_id": email.message_id},["name", "reference_doctype", "reference_name"],as_dict=1)
 			
 			
@@ -399,15 +402,12 @@ class EmailAccount(Document):
 						parent = frappe.get_doc(parent.reference_doctype,
 							parent.reference_name)
 			'''
-		if first:
-			if in_reply_to:
-				# set in_reply_to of current communication
-				communication.in_reply_to = first.name
-			else:
+		
+			if first:
 				#set timeline hide to parent doc so are linked
 				communication.timeline_hide = first.name
-			communication.reference_doctype = first.reference_doctype
-			communication.reference_name = first.reference_name
+				communication.reference_doctype = first.reference_doctype
+				communication.reference_name = first.reference_name
 		else:
 			
 			if not parent and self.append_to and sender_field:
