@@ -293,6 +293,7 @@ class EmailAccount(Document):
 			raw, uid, seen = msg
 		else:
 			raw = msg
+			seen = uid = None
 		email = Email(raw)
 
 		if email.from_email == self.email_id and not email.mail.get("Reply-To"):
