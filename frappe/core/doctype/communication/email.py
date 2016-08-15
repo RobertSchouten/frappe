@@ -259,10 +259,10 @@ def get_recipients(doc, fetched_from_email_account=False):
 	# [EDGE CASE] doc.recipients can be None when an email is sent as BCC
 	recipients = split_emails(doc.recipients)
 
-	if fetched_from_email_account and doc.in_reply_to:
+	#if fetched_from_email_account and doc.in_reply_to:
 		# add sender of previous reply
-		doc.previous_email_sender = frappe.db.get_value("Communication", doc.in_reply_to, "sender")
-		recipients.append(doc.previous_email_sender)
+		#doc.previous_email_sender = frappe.db.get_value("Communication", doc.in_reply_to, "sender")
+		#recipients.append(doc.previous_email_sender)
 
 	if recipients:
 		# exclude email accounts

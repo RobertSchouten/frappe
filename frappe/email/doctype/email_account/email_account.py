@@ -499,7 +499,7 @@ class EmailAccount(Document):
 					 frappe.get_template("templates/emails/auto_reply.html").render(communication.as_dict()),
 				reference_doctype = communication.reference_doctype,
 				reference_name = communication.reference_name,
-				message_id = communication.name,
+				#message_id = communication.name,
 				in_reply_to = email.mail.get("Message-Id"), # send back the Message-Id as In-Reply-To
 				unsubscribe_message = _("Leave this conversation"),
 				bulk=True)
