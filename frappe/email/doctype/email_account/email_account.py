@@ -59,6 +59,7 @@ class EmailAccount(Document):
 		if not self.awaiting_password and not frappe.local.flags.in_install and not frappe.local.flags.in_patch:
 			if self.enable_incoming:
 				self.get_server()
+				self.no_failed = 0
 
 
 			if self.enable_outgoing:
@@ -169,8 +170,12 @@ class EmailAccount(Document):
 			if in_receive:
 				# timeout while connecting, see receive.py connect method
 				description = frappe.message_log.pop() if frappe.message_log else "Socket Error"
-				self.handle_incoming_connect_error(description=description)
-
+				if test_internet():
+					self.db_set("no_failed", self.no_failed + 1)
+					if self.no_failed > 2:
+						self.handle_incoming_connect_error(description=description)
+				else:
+					frappe.cache().set_value("workers:no-internet", True)
 				return None
 
 			else:
@@ -178,27 +183,25 @@ class EmailAccount(Document):
 		if not in_receive:
 			if self.use_imap:
 				email_server.imap.logout()
+		if self.no_failed >0:
+			self.db_set("no_failed", 0)
 		return email_server
 
 	def handle_incoming_connect_error(self, description):
-		if test_internet():
-			self.db_set("enable_incoming", 0)
-
-			for user in get_system_managers(only_name=True):
-				try:
-					assign_to.add({
-						'assign_to': user,
-						'doctype': self.doctype,
-						'name': self.name,
-						'description': description,
-						'priority': 'High',
-						'notify': 1
-					})
-				except assign_to.DuplicateToDoError:
-					frappe.message_log.pop()
-					pass
-		else:
-			frappe.cache().set_value("workers:no-internet", True)
+		self.db_set("enable_incoming", 0)
+		for user in get_system_managers(only_name=True):
+			try:
+				assign_to.add({
+					'assign_to': user,
+					'doctype': self.doctype,
+					'name': self.name,
+					'description': description,
+					'priority': 'High',
+					'notify': 1
+				})
+			except assign_to.DuplicateToDoError:
+				frappe.message_log.pop()
+				pass
 
 	def receive(self, test_mails=None):
 		"""Called by scheduler to receive emails from this EMail account using POP3/IMAP."""
@@ -242,6 +245,15 @@ class EmailAccount(Document):
 				else:
 					frappe.db.commit()
 					attachments = [d.file_name for d in communication._attachments]
+
+					if communication.message_id:
+						first = frappe.db.get_values("Communication", {"message_id": communication.message_id}, ["name"],
+						                             order_by="Creation", as_dict=1)
+						if first:
+							if first[0].name != communication.name:
+								communication.timeline_hide = first[0].name
+								frappe.db.set_value("Communication", communication.name, "timeline_hide", first[0].name,
+								                    update_modified=False)
 					
 					if self.no_remaining == '0':
 						if communication.reference_doctype:
