@@ -246,14 +246,11 @@ class EmailAccount(Document):
 					frappe.db.commit()
 					attachments = [d.file_name for d in communication._attachments]
 
-					if communication.message_id:
-						first = frappe.db.get_values("Communication", {"message_id": communication.message_id}, ["name"],
-						                             order_by="Creation", as_dict=1)
+					if communication.message_id and not communication.timeline_hide:
+						first = frappe.db.get_value("Communication", {"message_id": communication.message_id},["name"],as_dict=1)
 						if first:
-							if first[0].name != communication.name:
-								communication.timeline_hide = first[0].name
-								frappe.db.set_value("Communication", communication.name, "timeline_hide", first[0].name,
-								                    update_modified=False)
+							if first.name != communication.name:
+								communication.db_set("timeline_hide",first.name,update_modified=False)
 					
 					if self.no_remaining == '0':
 						if communication.reference_doctype:
