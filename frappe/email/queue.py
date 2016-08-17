@@ -10,7 +10,7 @@ from frappe.email.smtp import SMTPServer, get_outgoing_email_account
 from frappe.email.email_body import get_email, get_formatted_html
 from frappe.utils.verified_command import get_signed_params, verify_request
 from html2text import html2text
-from frappe.utils import get_url, nowdate, encode, now_datetime, add_days, split_emails, cstr
+from frappe.utils import get_url, nowdate, encode, now_datetime, add_days, split_emails, cstr, cint
 from rq.timeouts import JobTimeoutException
 from frappe.utils.scheduler import log
 
@@ -118,8 +118,7 @@ def add(email, sender, subject, formatted, text_content=None,
 		mail = get_email(email, sender=sender, formatted=formatted, subject=subject,
 			text_content=text_content, attachments=attachments, reply_to=reply_to, cc=cc, email_account=email_account)
 
-		if message_id:
-			mail.set_message_id(message_id)
+		mail.set_message_id(message_id)
 
 		if in_reply_to:
 			mail.set_in_reply_to(in_reply_to)
@@ -315,7 +314,8 @@ def send_one(email, smtpserver=None, auto_commit=True, now=False):
 			smtplib.SMTPConnectError,
 			smtplib.SMTPHeloError,
 			smtplib.SMTPAuthenticationError,
-			JobTimeoutException):
+			JobTimeoutException,
+			frappe.ValidationError):
 
 		# bad connection/timeout, retry later
 		frappe.db.sql("""update `tabEmail Queue` set status='Not Sent', modified=%s where name=%s""",
