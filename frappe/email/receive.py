@@ -653,30 +653,6 @@ class Email:
 
 		self.unique_id = get_unique_id(self.mail)
 
-		# gmail mailing-list compatibility
-		# use X-Original-Sender if available, as gmail sometimes modifies the 'From'
-		_from_email = self.mail.get("X-Original-From") or self.mail["From"]
-
-		self.from_email = extract_email_id(_from_email)
-		if self.from_email:
-			self.from_email = self.from_email.lower()
-
-		#self.from_real_name = email.utils.parseaddr(_from_email)[0]
-
-		_from_real_name = email.Header.decode_header(email.utils.parseaddr(_from_email)[0])
-		self.from_real_name = email.Header.decode_header(email.utils.parseaddr(_from_email)[0])[0][0] or ""
-
-		try:
-			if _from_real_name[0][1]:
-				self.from_real_name = self.from_real_name.decode(_from_real_name[0][1])
-			else:
-				# assume that the encoding is utf-8
-				self.from_real_name = self.from_real_name.decode("utf-8")
-		except UnicodeDecodeError,e:
-			print e
-			pass
-
-		#self.from_real_name = email.Header.decode_header(email.utils.parseaddr(_from_email)[0])[0][0]
 		self.To = self.mail.get("To")
 		if self.To:
 			self.To = self.To.lower()
@@ -740,6 +716,29 @@ class Email:
 		self.from_email = extract_email_id(_from_email)
 		self.from_real_name = email.utils.parseaddr(_from_email)[0]
 
+		# # gmail mailing-list compatibility
+		# # use X-Original-Sender if available, as gmail sometimes modifies the 'From'
+		# _from_email = self.mail.get("X-Original-From") or self.mail["From"]
+		# 
+		# self.from_email = extract_email_id(_from_email)
+		# if self.from_email:
+		# 	self.from_email = self.from_email.lower()
+		# 
+		# # self.from_real_name = email.utils.parseaddr(_from_email)[0]
+		# 
+		# _from_real_name = email.Header.decode_header(email.utils.parseaddr(_from_email)[0])
+		# self.from_real_name = email.Header.decode_header(email.utils.parseaddr(_from_email)[0])[0][0] or ""
+		# 
+		# try:
+		# 	if _from_real_name[0][1]:
+		# 		self.from_real_name = self.from_real_name.decode(_from_real_name[0][1])
+		# 	else:
+		# 		# assume that the encoding is utf-8
+		# 		self.from_real_name = self.from_real_name.decode("utf-8")
+		# except UnicodeDecodeError, e:
+		# 	print e
+		# 	pass
+		
 	def set_content_and_type(self):
 		self.content, self.content_type = '[Blank Email]', 'text/plain'
 		if self.html_content:
