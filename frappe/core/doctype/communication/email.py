@@ -116,6 +116,8 @@ def notify(doc, print_html=None, print_format=None, attachments=None,
 			recipients=recipients, cc=cc)
 	else:
 		check_email_limit(list(set(doc.sent_email_addresses)))
+		if doc.sent_or_received == "Received":
+			doc.message_id = None
 		enqueue(sendmail, queue="default", timeout=300, event="sendmail",
 			communication_name=doc.name,
 			print_html=print_html, print_format=print_format, attachments=attachments,
