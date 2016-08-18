@@ -235,7 +235,6 @@ class EmailAccount(Document):
 
 				except SentEmailInInbox,e:
 					frappe.db.rollback()
-					make_error_snapshot(e)
 					if self.use_imap:
 						self.handle_bad_emails(email_server, msg[1], msg[0],"sent email in inbox")
 
@@ -263,11 +262,11 @@ class EmailAccount(Document):
 								communication.notify(attachments=attachments, fetched_from_email_account=True)
 
 			#update attachment folder size as suspended for emails
-			try:
-				folder = frappe.get_doc("File", 'Home/Attachments')
-				folder.save()
-			except:
-				print "file attachment bug"
+			#try:
+			#	folder = frappe.get_doc("File", 'Home/Attachments')
+			#	folder.save()
+			#except:
+			#	print "file attachment bug"
 				#exceptions.append(frappe.get_traceback())
 
 			#notify if user is linked to account
@@ -275,7 +274,7 @@ class EmailAccount(Document):
 				frappe.publish_realtime('new_email', {"account":self.email_account_name,"number":len(incoming_mails)})
 
 			self.time.append(time.time())
-			print (self.email_account_name+': end sync setup;fetch;parse {0},{1},{2}={3}'.format(round(self.time[1]-self.time[0],2),round(self.time[2]-self.time[1],2),round(self.time[3]-self.time[2],2),round(self.time[3]-self.time[0],2)))
+			log(self.email_account_name+': end sync setup;fetch;parse {0},{1},{2}={3}'.format(round(self.time[1]-self.time[0],2),round(self.time[2]-self.time[1],2),round(self.time[3]-self.time[2],2),round(self.time[3]-self.time[0],2)))
 
 			if exceptions:
 				raise Exception, frappe.as_json(exceptions)
