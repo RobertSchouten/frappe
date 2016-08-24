@@ -100,9 +100,6 @@ class EmailServer:
 
 		frappe.db.commit()
 
-		#if not self.connect():
-		#	return []
-
 		try:
 			# track if errors arised
 			self.errors = False
