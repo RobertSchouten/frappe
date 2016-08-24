@@ -20,7 +20,6 @@ from frappe.desk.form import assign_to
 from frappe.utils.user import get_system_managers
 from frappe.core.doctype.communication.email import set_incoming_outgoing_accounts
 from frappe.utils.error import make_error_snapshot
-from frappe.email import set_customer_supplier
 
 
 
@@ -205,10 +204,10 @@ class EmailAccount(Document):
 
 	def receive(self, test_mails=None):
 		"""Called by scheduler to receive emails from this EMail account using POP3/IMAP."""
-		import time
-		print('starting'+self.email_account_name)
-		self.time =[]
-		self.time.append(time.time())
+		#import time
+		#print('starting'+self.email_account_name)
+		#self.time =[]
+		#self.time.append(time.time())
 		if self.enable_incoming:
 			if frappe.local.flags.in_test:
 				incoming_mails = test_mails
@@ -216,9 +215,9 @@ class EmailAccount(Document):
 				email_server = self.get_server(in_receive=True)
 				if not email_server:
 					return
-				self.time.append(time.time())
+				#self.time.append(time.time())
 				incoming_mails = email_server.get_messages()
-				self.time.append(time.time())
+				#self.time.append(time.time())
 
 			exceptions = []
 
@@ -269,8 +268,8 @@ class EmailAccount(Document):
 			if len(incoming_mails)>0:
 				frappe.publish_realtime('new_email', {"account":self.email_account_name,"number":len(incoming_mails)})
 
-			self.time.append(time.time())
-			print (self.email_account_name+': end sync setup;fetch;parse {0},{1},{2}={3}'.format(round(self.time[1]-self.time[0],2),round(self.time[2]-self.time[1],2),round(self.time[3]-self.time[2],2),round(self.time[3]-self.time[0],2)))
+			#self.time.append(time.time())
+			#print (self.email_account_name+': end sync setup;fetch;parse {0},{1},{2}={3}'.format(round(self.time[1]-self.time[0],2),round(self.time[2]-self.time[1],2),round(self.time[3]-self.time[2],2),round(self.time[3]-self.time[0],2)))
 
 			if exceptions:
 				raise Exception, frappe.as_json(exceptions)
@@ -310,7 +309,6 @@ class EmailAccount(Document):
 			# and we don't want emails sent by us to be pulled back into the system again
 			# dont count emails sent by the system get those
 			raise SentEmailInInbox
-		contact = set_customer_supplier(email.from_email,email.To)
 		
 		communication = frappe.get_doc({
 			"doctype": "Communication",
@@ -323,9 +321,6 @@ class EmailAccount(Document):
 			"cc": email.CC,
 			"email_account": self.name,
 			"communication_medium": "Email",
-			"timeline_doctype":contact["timeline_doctype"],
-			"timeline_name":contact["timeline_name"],
-			"timeline_label":contact["timeline_label"],
 			"uid":uid,
 			"message_id":email.message_id,
 			"actualdate":email.date,

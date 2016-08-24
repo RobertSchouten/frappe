@@ -17,7 +17,7 @@ class BulkLimitCrossedError(frappe.ValidationError): pass
 def send(recipients=None, sender=None, subject=None, message=None, reference_doctype=None,
 		reference_name=None, unsubscribe_method=None, unsubscribe_params=None, unsubscribe_message=None,
 		attachments=None, reply_to=None, cc=(), show_as_cc=(), message_id=None, in_reply_to=None, send_after=None,
-		expose_recipients=False, bulk_priority=1, communication=None):
+		expose_recipients=False, bulk_priority=1, communication=None,read_receipt=None):
 	"""Add email to sending queue (Bulk Email)
 
 	:param recipients: List of recipients.
@@ -103,12 +103,12 @@ def send(recipients=None, sender=None, subject=None, message=None, reference_doc
 		# add to queue
 		add(email, sender, subject, email_content, email_text_context, reference_doctype,
 			reference_name, attachments, reply_to, cc, message_id, in_reply_to, send_after, bulk_priority,
-			email_account=email_account, communication=communication)
+			email_account=email_account, communication=communication,read_receipt=read_receipt)
 
 def add(email, sender, subject, formatted, text_content=None,
 	reference_doctype=None, reference_name=None, attachments=None, reply_to=None,
 	cc=(), message_id=None, in_reply_to=None, send_after=None, bulk_priority=1,
-	email_account=None, communication=None):
+	email_account=None, communication=None,read_receipt=None):
 	"""add to bulk mail queue"""
 
 	e = frappe.new_doc('Bulk Email')
@@ -120,7 +120,8 @@ def add(email, sender, subject, formatted, text_content=None,
 			text_content=text_content, attachments=attachments, reply_to=reply_to, cc=cc, email_account=email_account)
 
 		mail.set_message_id(message_id)
-
+		if read_receipt:
+			mail.msg_root["Disposition-Notification-To"] = sender
 		if in_reply_to:
 			mail.set_in_reply_to(in_reply_to)
 
@@ -255,7 +256,7 @@ def flush(from_test=False):
 		where datediff(curdate(), creation) > 3 and status='Not Sent'""", auto_commit=auto_commit)
 
 	for i in xrange(500):
-		if cint(frappe.defaults.get_defaults().get("hold_bulk")):
+		if cint(frappe.defaults.get_defaults().get("hold_bulk"))==1:
 			break
 		
 		email = frappe.db.sql("""select * from `tabBulk Email` where
