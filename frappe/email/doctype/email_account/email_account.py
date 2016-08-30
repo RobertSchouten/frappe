@@ -242,8 +242,8 @@ class EmailAccount(Document):
 							if first.name != communication.name:
 								communication.db_set("timeline_hide",first.name,update_modified=False)
 					
-					if self.no_remaining == '0':
-						if communication.reference_doctype:
+					if self.no_remaining == '0' and not frappe.local.flags.in_test:
+						if communication.reference_doctype :
 							if not communication.timeline_hide and not communication.unread_notification_sent:
 								communication.notify(attachments=attachments, fetched_from_email_account=True)
 
@@ -256,7 +256,7 @@ class EmailAccount(Document):
 				#exceptions.append(frappe.get_traceback())
 
 			#notify if user is linked to account
-			if len(incoming_mails)>0:
+			if len(incoming_mails)>0 and not frappe.local.flags.in_test:
 				frappe.publish_realtime('new_email', {"account":self.email_account_name,"number":len(incoming_mails)})
 
 			if exceptions:
