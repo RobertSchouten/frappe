@@ -48,8 +48,6 @@ class User(Document):
 		self.remove_disabled_roles()
 		self.get_awaiting_password()
 		self.force_user_email_update()
-		if frappe.session.user == "Administrator" or "System Manager" in frappe.get_roles():
-			self.user_emails_to_permissions()
 
 		if self.language == "Loading...":
 			self.language = None

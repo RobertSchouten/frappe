@@ -55,7 +55,6 @@ class TestUser(unittest.TestCase):
 		self.assertEquals(frappe.db.get_value("Website Settings", "Website Settings", "_test"), "_test_val")
 
 	def test_high_permlevel_validations(self):
-		print(frappe.session.user)
 		user = frappe.get_meta("User")
 		self.assertTrue("user_roles" in [d.fieldname for d in user.get_high_permlevel_fields()])
 
