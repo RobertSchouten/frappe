@@ -100,9 +100,6 @@ class EmailServer:
 
 		frappe.db.commit()
 
-		#if not self.connect():
-		#	return []
-
 		try:
 			# track if errors arised
 			self.errors = False
@@ -200,7 +197,6 @@ class EmailServer:
 		return email_list
 
 	def check_uid_validity(self,uid_validity):
-		self.time = []
 		if self.settings.uid_validity:
 			if self.settings.uid_validity == uid_validity:
 				return True
@@ -421,7 +417,7 @@ class EmailServer:
 
 
 							if uid:
-								self.latest_messages.append([item[1],uid,1])
+								self.latest_messages.append([item[1],uid,1])#message,uid,seen
 
 					# set number of email remaining to be synced TEMPTEMPTEMPTEMPTEMP################################################################
 					frappe.db.set_value("Email Account", self.settings.email_account, "no_remaining",dl_length-len(self.latest_messages),update_modified = False)
@@ -449,11 +445,9 @@ class EmailServer:
 				pass
 
 	def get_seen(self):
-		self.time.append(time.time())
 		comm_list = frappe.db.sql("""select name,uid,seen from `tabCommunication`
 			where email_account = %(email_account)s and uid is not null""",
 		              {"email_account":self.settings.email_account},as_dict=1)
-		self.time.append(time.time())
 
 		try:
 			#response, messages = self.imap.uid('fetch', '1:*', '(FLAGS)')
@@ -462,7 +456,6 @@ class EmailServer:
 		except Exception,e:
 			print("failed get seen sync download")
 			return
-		self.time.append(time.time())
 		unseen_list = unseen_list[0].split()
 		for unseen in unseen_list:
 			for msg in self.latest_messages:
@@ -475,7 +468,6 @@ class EmailServer:
 						frappe.db.set_value('Communication', comm.name, 'seen', 0, update_modified=False)
 					comm_list.remove(comm)
 					break
-		self.time.append(time.time())
 		seen_list = seen_list[0].split()
 		for seen in seen_list:
 			for msg in self.latest_messages:
@@ -516,9 +508,7 @@ class EmailServer:
 					comm_list.remove(comm)
 					break
 		'''
-		self.time.append(time.time())
 		frappe.db.commit()
-		#print ('get_db,fetch_server,seen,unseen: {0},{1},{2},{3}={4}'.format(round(self.time[1]-self.time[0],2),round(self.time[2]-self.time[1],2),round(self.time[3]-self.time[2],2),round(self.time[4]-self.time[3],2),round(self.time[4]-self.time[0],2) ))
 
 
 	def push_deleted(self):

@@ -102,7 +102,7 @@ class TestEmailAccount(unittest.TestCase):
 
 		# send
 		sent_name = make(subject = "Test", content="test content",
-			recipients="test_receiver@example.com", sender="test@example.com",
+			recipients="test_receiver@example.com", sender="test@example.com",doctype="User",name="Administrator",
 			send_email=True)["name"]
 
 		sent_mail = email.message_from_string(frappe.get_last_doc("Bulk Email").message)
@@ -119,8 +119,8 @@ class TestEmailAccount(unittest.TestCase):
 		sent = frappe.get_doc("Communication", sent_name)
 
 		comm = frappe.get_doc("Communication", {"sender": "test_sender@example.com"})
-		self.assertEquals(comm.reference_doctype, sent.doctype)
-		self.assertEquals(comm.reference_name, sent.name)
+		self.assertEquals(comm.reference_doctype, sent.reference_doctype)
+		self.assertEquals(comm.reference_name, sent.reference_name)
 
 	def test_threading_by_subject(self):
 		frappe.db.sql("""delete from tabCommunication

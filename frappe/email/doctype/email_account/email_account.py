@@ -20,10 +20,6 @@ from frappe.desk.form import assign_to
 from frappe.utils.user import get_system_managers
 from frappe.core.doctype.communication.email import set_incoming_outgoing_accounts
 from frappe.utils.error import make_error_snapshot
-from frappe.email import set_customer_supplier
-
-
-
 
 class SentEmailInInbox(Exception): pass
 
@@ -205,10 +201,6 @@ class EmailAccount(Document):
 
 	def receive(self, test_mails=None):
 		"""Called by scheduler to receive emails from this EMail account using POP3/IMAP."""
-		import time
-		print('starting'+self.email_account_name)
-		self.time =[]
-		self.time.append(time.time())
 		if self.enable_incoming:
 			if frappe.local.flags.in_test:
 				incoming_mails = test_mails
@@ -216,9 +208,7 @@ class EmailAccount(Document):
 				email_server = self.get_server(in_receive=True)
 				if not email_server:
 					return
-				self.time.append(time.time())
 				incoming_mails = email_server.get_messages()
-				self.time.append(time.time())
 
 			exceptions = []
 
@@ -269,9 +259,6 @@ class EmailAccount(Document):
 			if len(incoming_mails)>0:
 				frappe.publish_realtime('new_email', {"account":self.email_account_name,"number":len(incoming_mails)})
 
-			self.time.append(time.time())
-			print (self.email_account_name+': end sync setup;fetch;parse {0},{1},{2}={3}'.format(round(self.time[1]-self.time[0],2),round(self.time[2]-self.time[1],2),round(self.time[3]-self.time[2],2),round(self.time[3]-self.time[0],2)))
-
 			if exceptions:
 				raise Exception, frappe.as_json(exceptions)
 
@@ -310,7 +297,6 @@ class EmailAccount(Document):
 			# and we don't want emails sent by us to be pulled back into the system again
 			# dont count emails sent by the system get those
 			raise SentEmailInInbox
-		contact = set_customer_supplier(email.from_email,email.To)
 		
 		communication = frappe.get_doc({
 			"doctype": "Communication",
@@ -323,9 +309,6 @@ class EmailAccount(Document):
 			"cc": email.CC,
 			"email_account": self.name,
 			"communication_medium": "Email",
-			"timeline_doctype":contact["timeline_doctype"],
-			"timeline_name":contact["timeline_name"],
-			"timeline_label":contact["timeline_label"],
 			"uid":uid,
 			"message_id":email.message_id,
 			"actualdate":email.date,
@@ -385,7 +368,7 @@ class EmailAccount(Document):
 			sender_field = getattr(meta_module, "sender_field", "sender")
 			if not meta.get_field(sender_field):
 				sender_field = None
-
+		matched = False
 		if in_reply_to:
 			# reply to a communication sent from the system
 			reply_found = frappe.db.get_value("Communication", {"message_id": in_reply_to}, ["name","reference_doctype","reference_name"],as_dict=1)
@@ -394,32 +377,17 @@ class EmailAccount(Document):
 				communication.in_reply_to = reply_found.name
 				communication.reference_doctype = reply_found.reference_doctype
 				communication.reference_name = reply_found.reference_name
-		if email.message_id:
-			first = frappe.db.get_value("Communication", {"message_id": email.message_id},["name", "reference_doctype", "reference_name"],as_dict=1)
+				matched = True
+			if email.message_id:
+				first = frappe.db.get_value("Communication", {"message_id": email.message_id},["name", "reference_doctype", "reference_name"],as_dict=1)
 			
-			
-			'''origin = frappe.db.sql("select name from tabCommunication where message_id = %s",in_reply_to,as_list=1)
-			if origin:
-				in_reply_to = origin[0][0]
-
-				if frappe.db.exists("Communication", in_reply_to):
-					parent = frappe.get_doc("Communication", in_reply_to)
-
-					# set in_reply_to of current communication
-					communication.in_reply_to = in_reply_to
-
-					if parent.reference_name:
-						parent = frappe.get_doc(parent.reference_doctype,
-							parent.reference_name)
-			'''
-		
-			if first:
-				#set timeline hide to parent doc so are linked
-				communication.timeline_hide = first.name
-				communication.reference_doctype = first.reference_doctype
-				communication.reference_name = first.reference_name
-		else:
-			
+				if first:
+					#set timeline hide to parent doc so are linked
+					communication.timeline_hide = first.name
+					communication.reference_doctype = first.reference_doctype
+					communication.reference_name = first.reference_name
+					matched = True
+		if not matched:
 			if not parent and self.append_to and sender_field:
 				if subject_field:
 					# try and match by subject and sender
