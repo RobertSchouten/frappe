@@ -46,7 +46,6 @@ class User(Document):
 		self.remove_all_roles_for_guest()
 		self.validate_username()
 		self.remove_disabled_roles()
-		self.get_awaiting_password()
 
 		if self.language == "Loading...":
 			self.language = None
@@ -333,10 +332,6 @@ class User(Document):
 		if self.username and not re.match(r"^[\w]+$", self.username):
 			frappe.msgprint(_("Username should not contain any special characters other than letters, numbers and underscore"))
 			self.username = ""
-
-	def get_awaiting_password(self):
-		from frappe.email import ask_pass_update
-		ask_pass_update()
 
 	def suggest_username(self):
 		def _check_suggestion(suggestion):

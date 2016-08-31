@@ -72,16 +72,7 @@ class EmailAccount(Document):
 			if self.append_to not in valid_doctypes:
 				frappe.throw(_("Append To can be one of {0}").format(comma_or(valid_doctypes)))
 
-		if self.awaiting_password:
-			# push values to user_emails
-			frappe.db.sql("""update `tabUser Emails` set awaiting_password = 1
-						  where email_account = %(account)s""", {"account": self.name})
-		else:
-			frappe.db.sql("""update `tabUser Emails` set awaiting_password = 0
-									  where email_account = %(account)s""", {"account": self.name})
-
-		from frappe.email import ask_pass_update
-		ask_pass_update()
+		
 
 	def on_update(self):
 		"""Check there is only one default of each type."""
