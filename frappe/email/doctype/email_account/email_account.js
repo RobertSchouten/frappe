@@ -81,7 +81,7 @@ frappe.ui.form.on("Email Account", {
 		}
 	},*/
 	enable_incoming: function(frm) {
-		frm.doc.no_remaining = null
+		frm.doc.no_remaining = null //perform full sync
 		//frm.set_df_property("append_to", "reqd", frm.doc.enable_incoming);
 	},
 	notify_if_unreplied: function(frm) {
@@ -99,22 +99,6 @@ frappe.ui.form.on("Email Account", {
 		frm.events.enable_incoming(frm);
 		frm.events.notify_if_unreplied(frm);
 		frm.events.show_gmail_message_for_less_secure_apps(frm);
-		if (frm.doc.__islocal != 1) {
-			if (frappe.route_titles["create user account"]) {
-				var user =frappe.route_titles["create user account"];
-				delete frappe.route_titles["create user account"];
-				var userdoc = frappe.get_doc("User",user);
-				frappe.model.with_doc("User", user, function (doc) { //route[2]
-					var new_row = frappe.model.add_child(userdoc, "User Emails", "user_emails");
-					new_row.email_account = cur_frm.doc.name;
-					new_row.awaiting_password = cur_frm.doc.awaiting_password;
-					new_row.email_id = cur_frm.doc.email_id;
-					new_row.idx = 0;
-					frappe.route_titles = {"unsaved": 1};
-					frappe.set_route("Form", "User",user);
-				});
-            }
-        }
 	},
 	show_gmail_message_for_less_secure_apps: function(frm) {
 		frm.dashboard.reset();

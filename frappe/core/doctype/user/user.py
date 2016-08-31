@@ -47,26 +47,9 @@ class User(Document):
 		self.validate_username()
 		self.remove_disabled_roles()
 		self.get_awaiting_password()
-		self.force_user_email_update()
 
 		if self.language == "Loading...":
 			self.language = None
-
-	def user_emails_to_permissions(self):
-		#get list of user permissions
-		from frappe.core.page.user_permissions.user_permissions import get_permissions
-		permissions = set([x.defvalue for x in get_permissions(self.name,"Email Account")])
-		user_emails = set([x.email_account for x in self.user_emails])
-
-		#compare vs user emails
-		add = user_emails - permissions
-		remove = permissions - user_emails
-
-		#set the difference
-		for r in remove:
-			frappe.permissions.remove_user_permission("Email Account", r, self.name)
-		for a in add:
-			frappe.permissions.add_user_permission("Email Account", a, self.name, with_message=True)
 
 	def check_enable_disable(self):
 		# do not allow disabling administrator/guest
@@ -355,12 +338,6 @@ class User(Document):
 		from frappe.email import ask_pass_update
 		ask_pass_update()
 
-	def force_user_email_update(self):
-		for user_email in self.user_emails:
-			if not user_email.email_id:
-				user_email.email_id = frappe.db.get_value("Email Account",{"name":user_email.email_account},"email_id")
-
-
 	def suggest_username(self):
 		def _check_suggestion(suggestion):
 			if self.username != suggestion and not self.username_exists(suggestion):
@@ -579,7 +556,5 @@ def extract_mentions(txt):
 	The mentions will be separated by non-word characters or may appear at the start of the string"""
 	return re.findall(r'(?:[^\w]|^)@([\w]*)', txt)
 
-@frappe.whitelist()
-def has_email_account(email):
-	return frappe.get_list("Email Account", filters={"email_id": email})
+
 

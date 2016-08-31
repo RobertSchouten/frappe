@@ -79,28 +79,6 @@ frappe.ui.form.on('User', {
 			}
 		}
 
-		if (frm.doc.user_emails){
-			var found =0
-			for (var i = 0;i<frm.doc.user_emails.length;i++){
-				if (frm.doc.email==frm.doc.user_emails[i].email_id){
-					found = 1;
-				}
-			}
-			frm.get_field("create_user_email").df.hidden = found;
-			frm.refresh_field("create_user_email");
-		}else{
-			frm.get_field("create_user_email").df.hidden = 1
-		}
-		frm.refresh_field("create_user_email");
-
-		if (frappe.route_titles["unsaved"]===1){
-			delete frappe.route_titles["unsaved"];
-			for ( var i=0;i<frm.doc.user_emails.length;i++){
-				frm.doc.user_emails[i].idx=frm.doc.user_emails[i].idx+1;
-			}
-			frm.doc.email_account
-		cur_frm.dirty();
-		}
 	},
 	validate: function(frm) {
 		if(frm.roles_editor) {
@@ -117,28 +95,6 @@ frappe.ui.form.on('User', {
 		if(user!="Administrator") {
 			frm.toggle_enable('email', doc.__islocal);
 		}
-	},
-	create_user_email:function(frm) {
-		frappe.call({
-			method: 'frappe.core.doctype.user.user.has_email_account',
-			args: {email:cur_frm.doc.email},
-			callback: function(frm) {
-				if (frm["message"]== undefined){
-					var doc = frappe.model.get_new_doc("Email Account");
-					frappe.route_options = {
-						"email_id": cur_frm.doc.email,
-						"awaiting_password":1,
-						"enable_incoming":1,
-						"append_to":"Communication"
-					};
-					frappe.route_titles["create user account"]=cur_frm.doc.name;
-					frappe.set_route("Form", "Email Account", doc.name);
-				}else{
-					frappe.set_route("Form", "Email Account", frm["message"][0]["name"]);
-				}
-			}
-		})
-
 	}
 });
 
