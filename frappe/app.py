@@ -30,8 +30,6 @@ local_manager = LocalManager([frappe.local])
 _site = None
 _sites_path = os.environ.get("SITES_PATH", ".")
 
-logger = frappe.get_logger()
-
 class RequestContext(object):
 
 	def __init__(self, environ):
@@ -57,6 +55,8 @@ def application(request):
 			response = frappe.handler.handle()
 
 		elif frappe.request.path.startswith("/api/"):
+                	if frappe.local.form_dict.data is None:
+                        	frappe.local.form_dict.data = request.get_data()
 			response = frappe.api.handle()
 
 		elif frappe.request.path.startswith('/backups'):
@@ -66,13 +66,13 @@ def application(request):
 			response = frappe.utils.response.download_private_file(request.path)
 
 		elif frappe.local.request.method in ('GET', 'HEAD'):
-			response = frappe.website.render.render(request.path)
+			response = frappe.website.render.render()
 
 		else:
 			raise NotFound
 
 	except HTTPException, e:
-		logger.error('Request Error')
+		frappe.logger().error('Request Error', exc_info=True)
 		return e
 
 	except frappe.SessionStopped, e:
@@ -150,7 +150,7 @@ def handle_exception(e):
 			frappe.local.login_manager.clear_cookies()
 
 	if http_status_code >= 500:
-		logger.error('Request Error')
+		frappe.logger().error('Request Error', exc_info=True)
 		make_error_snapshot(e)
 
 	return response
@@ -182,7 +182,7 @@ def serve(port=8000, profile=False, site=None, sites_path='.'):
 	from werkzeug.serving import run_simple
 
 	if profile:
-		application = ProfilerMiddleware(application, sort_by=('tottime', 'calls'))
+		application = ProfilerMiddleware(application, sort_by=('cumtime', 'calls'))
 
 	if not os.environ.get('NO_STATICS'):
 		application = SharedDataMiddleware(application, {

@@ -4,6 +4,15 @@
 frappe.provide('frappe.utils');
 
 frappe.utils = {
+	get_random: function(len) {
+	    var text = "";
+	    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+	    for( var i=0; i < len; i++ )
+	        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+	    return text;
+	},
 	get_file_link: function(filename) {
 		filename = cstr(filename);
 		if(frappe.utils.is_url(filename)) {
@@ -22,9 +31,6 @@ frappe.utils = {
 			return false;
 		}
 		return true;
-	},
-	is_mobile: function() {
-		return frappe.utils.is_xs();
 	},
 	is_xs: function() {
 		return $(document).width() < 768;
@@ -71,6 +77,31 @@ frappe.utils = {
 					• • • \
 				</a></p>');
 		return content.html();
+	},
+	scroll_to: function(element, animate, additional_offset) {
+		var y = 0;
+		if(element && typeof element==='number') {
+			y = element;
+		} else if(element) {
+			var header_offset = $(".navbar").height() + $(".page-head").height();
+			var y = $(element).offset().top - header_offset - cint(additional_offset);
+		}
+
+		if(y < 0) {
+			y = 0;
+		}
+
+		// already there
+		if(y==$('body').scrollTop()) {
+			return;
+		}
+
+		if (animate!==false) {
+			$("body").animate({ scrollTop: y });
+		} else {
+			$(window).scrollTop(y);
+		}
+
 	},
 	filter_dict: function(dict, filters) {
 		var ret = [];
@@ -298,6 +329,26 @@ frappe.utils = {
 
 	sum: function(list) {
 		return list.reduce(function(previous_value, current_value) { return flt(previous_value) + flt(current_value); }, 0.0);
+	},
+
+	arrays_equal: function(arr1, arr2) {
+		if (!arr1 || !arr2) {
+			return false;
+		}
+	    if (arr1.length != arr2.length) {
+			return false;
+		}
+	    for (var i = 0; i < arr1.length; i++) {
+	        if ($.isArray(arr1[i])) {
+	            if (!frappe.utils.arrays_equal(arr1[i], arr2[i])) {
+					return false;
+				}
+	        }
+	        else if (arr1[i] !== arr2[i]) {
+				return false;
+			}
+	    }
+	    return true;
 	},
 
 	intersection: function(a, b) {

@@ -70,7 +70,7 @@ def run(report_name, filters=()):
 		frappe.msgprint(_("Must have report permission to access this report."),
 			raise_exception=True)
 
-	columns, result = [], []
+	columns, result, message, chart = [], [], None, {}
 	if report.report_type=="Query Report":
 		if not report.query:
 			frappe.msgprint(_("Must specify a Query to run"), raise_exception=True)
@@ -85,8 +85,14 @@ def run(report_name, filters=()):
 		module = report.module or frappe.db.get_value("DocType", report.ref_doctype, "module")
 		if report.is_standard=="Yes":
 			method_name = get_report_module_dotted_path(module, report.name) + ".execute"
-			columns, result = frappe.get_attr(method_name)(frappe._dict(filters))
-
+			res = frappe.get_attr(method_name)(frappe._dict(filters))
+			
+			columns, result = res[0], res[1]
+			if len(res) > 2:
+				message = res[2]
+			if len(res) > 3:
+				chart = res[3]
+	
 	if report.apply_user_permissions and result:
 		result = get_filtered_data(report.ref_doctype, columns, result)
 
@@ -95,7 +101,9 @@ def run(report_name, filters=()):
 
 	return {
 		"result": result,
-		"columns": columns
+		"columns": columns,
+		"message": message,
+		"chart": chart
 	}
 
 def get_report_module_dotted_path(module, report_name):
@@ -105,22 +113,27 @@ def get_report_module_dotted_path(module, report_name):
 def add_total_row(result, columns):
 	total_row = [""]*len(columns)
 	has_percent = []
-	for row in result:
-		for i, col in enumerate(columns):
-			fieldtype = None
-			if isinstance(col, basestring):
-				col = col.split(":")
-				if len(col) > 1:
-					fieldtype = col[1]
-					if "/" in fieldtype:
-						fieldtype = fieldtype.split("/")[0]
-			else:
-				fieldtype = col.get("fieldtype")
-
+	for i, col in enumerate(columns):
+		fieldtype, options = None, None
+		if isinstance(col, basestring):
+			col = col.split(":")
+			if len(col) > 1:
+				fieldtype = col[1]
+				if "/" in fieldtype:
+					fieldtype, options = fieldtype.split("/")
+		else:
+			fieldtype = col.get("fieldtype")
+			options = col.get("options")
+			
+		for row in result:
 			if fieldtype in ["Currency", "Int", "Float", "Percent"] and flt(row[i]):
 				total_row[i] = flt(total_row[i]) + flt(row[i])
+			
 			if fieldtype == "Percent" and i not in has_percent:
 				has_percent.append(i)
+				
+		if fieldtype=="Link" and options == "Currency":
+			total_row[i] = result[0][i]
 
 	for i in has_percent:
 		total_row[i] = total_row[i] / len(result)

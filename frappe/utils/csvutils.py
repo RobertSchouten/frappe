@@ -18,8 +18,10 @@ def read_csv_content_from_uploaded_file(ignore_encoding=False):
 	return read_csv_content(fcontent, ignore_encoding)
 
 def read_csv_content_from_attached_file(doc):
-	fileid = frappe.db.get_value("File", {"attached_to_doctype": doc.doctype,
-		"attached_to_name":doc.name}, "name")
+	fileid = frappe.get_all("File", fields = ["name"], filters = {"attached_to_doctype": doc.doctype,
+		"attached_to_name":doc.name}, order_by="creation desc")
+
+	if fileid : fileid = fileid[0].name
 
 	if not fileid:
 		msgprint(_("File not attached"))
@@ -30,8 +32,7 @@ def read_csv_content_from_attached_file(doc):
 		fname, fcontent = get_file(fileid)
 		return read_csv_content(fcontent, frappe.form_dict.get('ignore_encoding_errors'))
 	except Exception:
-		frappe.msgprint(_("Unable to open attached file. Please try again."))
-		raise Exception
+		frappe.throw(_("Unable to open attached file. Did you export it as CSV?"), title=_('Invalid CSV Format'))
 
 def read_csv_content(fcontent, ignore_encoding=False):
 	rows = []

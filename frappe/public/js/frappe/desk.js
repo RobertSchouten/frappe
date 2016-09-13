@@ -6,7 +6,7 @@ frappe.start_app = function() {
 		return;
 	frappe.assets.check();
 	frappe.provide('frappe.app');
-	$.extend(frappe.app, new frappe.Application());
+	frappe.app = new frappe.Application();
 }
 
 $(document).ready(function() {
@@ -27,7 +27,7 @@ frappe.Application = Class.extend({
 		this.load_bootinfo();
 		this.make_nav_bar();
 		this.set_favicon();
-		this.setup_keyboard_shortcuts();
+		frappe.ui.keys.setup();
 		this.set_rtl();
 
 		if(frappe.boot) {
@@ -72,7 +72,11 @@ frappe.Application = Class.extend({
 		});
 
 		frappe.realtime.on("version-update", function() {
-			var dialog = frappe.msgprint(__("The application has been updated to a new version, please refresh this page"));
+			var dialog = frappe.msgprint({
+				message:__("The application has been updated to a new version, please refresh this page"),
+				indicator: 'green',
+				title: 'Version Updated'
+			});
 			dialog.set_primary_action("Refresh", function() {
 				location.reload(true);
 			});
@@ -152,10 +156,10 @@ frappe.Application = Class.extend({
 	update_notification_count_in_modules: function() {
 		$.each(frappe.boot.notification_info.open_count_doctype, function(doctype, count) {
 			if(count) {
-				$('.open-notification[data-doctype="'+ doctype +'"]')
-					.removeClass("hide").html(count > 99 ? "99+" : count);
+				$('.open-notification.global[data-doctype="'+ doctype +'"]')
+					.removeClass("hide").html(count > 20 ? "20+" : count);
 			} else {
-				$('.open-notification[data-doctype="'+ doctype +'"]')
+				$('.open-notification.global[data-doctype="'+ doctype +'"]')
 					.addClass("hide");
 			}
 		});
@@ -171,6 +175,8 @@ frappe.Application = Class.extend({
 		user_roles = frappe.boot.user.roles;
 		user_email = frappe.boot.user.email;
 		sys_defaults = frappe.boot.sysdefaults;
+		frappe.ui.py_date_format = frappe.boot.sysdefaults.date_format.replace('dd', '%d').replace('mm', '%m').replace('yyyy', '%Y');
+		frappe.boot.user.last_selected_values = {};
 	},
 	sync_pages: function() {
 		// clear cached pages if timestamp is not found
@@ -212,14 +218,6 @@ frappe.Application = Class.extend({
 			frappe.frappe_toolbar = new frappe.ui.toolbar.Toolbar();
 		}
 
-		// collapse offcanvas sidebars!
-		$(".offcanvas .sidebar").on("click", "a", function() {
-			$(".offcanvas").removeClass("active-left active-right");
-		});
-
-		$(".offcanvas-main-section-overlay").on("click", function() {
-			$(".offcanvas").removeClass("active-left active-right");
-		});
 	},
 	logout: function() {
 		var me = this;
@@ -244,57 +242,15 @@ frappe.Application = Class.extend({
 		$('<link rel="icon" href="' + link + '" type="image/x-icon">').appendTo("head");
 	},
 
-	setup_keyboard_shortcuts: function() {
-		$(document)
-			.keydown("meta+g ctrl+g", function(e) {
-				$("#navbar-search").focus()
-				return false;
-			})
-			.keydown("meta+s ctrl+s", function(e) {
-				e.preventDefault();
-				if(cur_frm) {
-					cur_frm.save_or_update();
-				} else if(frappe.container.page.save_action) {
-					frappe.container.page.save_action();
-				}
-				return false;
-			})
-			.keydown("esc", function(e) {
-				var open_row = $(".grid-row-open");
-				if(open_row.length) {
-					var grid_row = open_row.data("grid_row");
-					grid_row.toggle_view(false);
-				}
-				return false;
-			})
-			.keydown("ctrl+down meta+down", function(e) {
-				var open_row = $(".grid-row-open");
-				if(open_row.length) {
-					var grid_row = open_row.data("grid_row");
-					grid_row.toggle_view(false, function() { grid_row.open_next() });
-					return false;
-				}
-			})
-			.keydown("ctrl+up meta+up", function(e) {
-				var open_row = $(".grid-row-open");
-				if(open_row.length) {
-					var grid_row = open_row.data("grid_row");
-					grid_row.toggle_view(false, function() { grid_row.open_prev() });
-					return false;
-				}
-			})
-			.keydown("ctrl+n meta+n", function(e) {
-				var open_row = $(".grid-row-open");
-				if(open_row.length) {
-					var grid_row = open_row.data("grid_row");
-					grid_row.toggle_view(false, function() { grid_row.grid.add_new_row(grid_row.doc.idx, null, true); });
-					return false;
-				}
-			})
-			.keydown("ctrl+shift+r meta+shift+r", function(e) {
-				frappe.ui.toolbar.clear_cache();
-			});
-
+	trigger_primary_action: function() {
+		if(cur_dialog) {
+			// trigger primary
+			cur_dialog.get_primary_btn().trigger("click");
+		} else if(cur_frm && cur_frm.page.btn_primary.is(':visible')) {
+			cur_frm.page.btn_primary.trigger('click');
+		} else if(frappe.container.page.save_action) {
+			frappe.container.page.save_action();
+		}
 	},
 
 	set_rtl: function () {
@@ -338,7 +294,7 @@ frappe.get_module = function(m, default_module) {
 	if (!module.link) module.link = "";
 
 	if (!module._id) {
-		module._id = module.link.toLowerCase().replace("/", "-");
+		module._id = module.link.toLowerCase().replace("/", "-").replace(' ', '-');
 	}
 
 
@@ -350,12 +306,16 @@ frappe.get_module = function(m, default_module) {
 		module._label = __(module.label);
 	}
 
+	if(!module._doctype) {
+		module._doctype = '';
+	}
+
 	module._setup = true;
 
 	return module;
 };
 
-frappe.get_desktop_icons = function(show_hidden) {
+frappe.get_desktop_icons = function(show_hidden, show_global) {
 	// filter valid icons
 	var out = [];
 
@@ -376,14 +336,18 @@ frappe.get_desktop_icons = function(show_hidden) {
 			if(m.module_name==='Learn') {
 				// no permissions necessary for learn
 				out = true;
+			} else if(m.module_name==='Setup' && frappe.user.has_role('System Manager')) {
+				out = true;
 			} else {
 				out = frappe.boot.user.allow_modules.indexOf(m.module_name) !== -1
 			}
 		}
-		if(out && !show_hidden) {
-			if(m.hidden) out = false;
+		if(m.hidden&& !show_hidden) {
+			out = false;
 		}
-		
+		if(m.blocked && !show_global) {
+			out = false;
+		}
 		return out;
 	}
 
@@ -416,6 +380,11 @@ frappe.add_to_desktop = function(label, doctype) {
 			label: label,
 			type: 'link',
 			_doctype: doctype
+		},
+		callback: function(r) {
+			if(r.message) {
+				show_alert(__("Added"));
+			}
 		}
 	});
 }

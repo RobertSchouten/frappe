@@ -25,10 +25,10 @@ frappe.query_reports["Permitted Documents For User"] = {
 				}
 			}
 		},
-		{
-			"fieldname": "show_permissions",
-			"label": __("Show Permissions"),
-			"fieldtype": "Check"
-		}
+ 		{
+ 			"fieldname": "show_permissions",
+ 			"label": __("Show Permissions"),
+ 			"fieldtype": "Check"
+ 		}
 	]
 }

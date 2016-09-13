@@ -6,6 +6,7 @@ frappe.pages['modules'].on_page_load = function(wrapper) {
 	});
 
 	frappe.modules_page = page;
+	frappe.module_links = {};
 	page.section_data = {};
 
 	page.wrapper.find('.page-head h1').css({'padding-left': '15px'});
@@ -26,7 +27,8 @@ frappe.pages['modules'].on_page_load = function(wrapper) {
 	}
 
 	// render sidebar
-	page.sidebar.html(frappe.render_template('modules_sidebar', {modules: frappe.get_desktop_icons(true)}));
+	page.sidebar.html(frappe.render_template('modules_sidebar',
+		{modules: frappe.get_desktop_icons(true)}));
 
 	page.activate_link = function(link) {
 		page.last_link = link;
@@ -48,7 +50,7 @@ frappe.pages['modules'].on_page_load = function(wrapper) {
 				callback: function(r) {
 					m = frappe.get_module(module_name);
 					m.data = r.message.data;
-					process_data(m.data);
+					process_data(module_name, m.data);
 					page.section_data[module_name] = m;
 					render_section(m);
 				},
@@ -62,37 +64,42 @@ frappe.pages['modules'].on_page_load = function(wrapper) {
 		page.set_title(__(m.label));
 		page.main.html(frappe.render_template('modules_section', m));
 
-		if(frappe.utils.is_xs() || frappe.utils.is_sm()) {
-			// call this after a timeout, becuase a refresh will set the page to the top
-			setTimeout(function() {
-				$(document).scrollTop($('.module-body').offset().top - 100);
-			}, 100);
-		}
+		// if(frappe.utils.is_xs() || frappe.utils.is_sm()) {
+		// 	// call this after a timeout, becuase a refresh will set the page to the top
+		// 	setTimeout(function() {
+		// 		$(document).scrollTop($('.module-body').offset().top - 150);
+		// 	}, 100);
+		// }
 
 		//setup_section_toggle();
 		frappe.app.update_notification_count_in_modules();
 
-		page.main.find('.module-section-link').on("click", function(event) {
-			// if clicked on open notification!
-			if (event.target.classList.contains("open-notification")) {
-				var doctype = event.target.getAttribute("data-doctype");
-				frappe.route_options = frappe.boot.notification_info.conditions[doctype];
-				return false;
+		// notifications click
+		page.main.on("click", '.open-notification', function(event) {
+			var doctype = $(this).attr('data-doctype');
+			if(doctype) {
+				frappe.set_route('List', doctype, frappe.ui.notifications.get_filters(doctype));
 			}
-			if($(this).attr("data-type")==="help") {
-				frappe.help.show_video($(this).attr("data-youtube-id"));
-				return false;
-			}
+		});
+
+		// help click
+		page.main.on("click", '.module-section-link[data-type="help"]', function(event) {
+			frappe.help.show_video($(this).attr("data-youtube-id"));
+			return false;
 		});
 
 	}
 
-	var process_data = function(data) {
+	var process_data = function(module_name, data) {
+		frappe.module_links[module_name] = [];
 		data.forEach(function(section) {
 			section.items.forEach(function(item) {
 				item.style = '';
 				if(item.type==="doctype") {
 					item.doctype = item.name;
+
+					// map of doctypes that belong to a module
+					frappe.module_links[module_name].push(item.name);
 				}
 				if(!item.route) {
 					if(item.link) {
@@ -102,8 +109,11 @@ frappe.pages['modules'].on_page_load = function(wrapper) {
 						if(frappe.model.is_single(item.doctype)) {
 							item.route = 'Form/' + item.doctype;
 						} else {
+							if (item.filters) {
+								frappe.route_options=item.filters;
+							}
 							item.route="List/" + item.doctype
-							item.style = 'text-decoration: underline;';
+							//item.style = 'font-weight: 500;';
 						}
 						// item.style = 'font-weight: bold;';
 					}
@@ -134,6 +144,7 @@ frappe.pages['modules'].on_page_load = function(wrapper) {
 
 frappe.pages['modules'].on_page_show = function(wrapper) {
 	var route = frappe.get_route();
+	$("body").attr("data-sidebar", 1);
 	if(route.length > 1) {
 		// activate section based on route
 		frappe.modules_page.activate_link(
