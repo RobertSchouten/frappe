@@ -328,7 +328,7 @@ class DatabaseQuery(object):
 		else:
 			condition = 'ifnull({column_name}, {fallback}) {operator} {value}'.format(
 				column_name=column_name, fallback=fallback, operator=f.operator,
-				value=value)
+					value=value)
 
 		return condition
 

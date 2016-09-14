@@ -12,6 +12,18 @@ before_install:
   - "sh -e /etc/init.d/xvfb start"
 
 install:
+
+python:
+  - "2.7"
+
+services:
+  - mysql
+
+before_install:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+
+install:
   - sudo apt-get purge -y mysql-common mysql-server mysql-client
   # - wget https://raw.githubusercontent.com/frappe/bench/master/install_scripts/setup_frappe.sh
   # - sudo bash setup_frappe.sh --skip-setup-bench --mysql-root-password travis --bench-branch develop

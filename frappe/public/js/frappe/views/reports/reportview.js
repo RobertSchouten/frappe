@@ -303,7 +303,7 @@ frappe.views.ReportView = frappe.ui.Listing.extend({
 						docfield = columnDef.report_docfield;
 
 						docfield.link_onclick =
-							repl('frappe.container.page.reportview.set_filter("%(fieldname)s", "%(value)s").run()',
+							repl('frappe.container.page.reportview.set_filter("%(fieldname)s", "%(value)s")',
 								{fieldname:docfield.fieldname, value:value});
 					}
 					return frappe.format(value, docfield, {for_print: for_print, always_show_decimals: true}, dataContext);
@@ -483,14 +483,12 @@ frappe.views.ReportView = frappe.ui.Listing.extend({
 		this.$w.find('.result-list').on("click", ".label-info", function() {
 			if($(this).attr("data-label")) {
 				me.set_filter("_user_tags", $(this).attr("data-label"));
-				me.refresh();
 			}
 		});
 		this.$w.find('.result-list').on("click", "[data-workflow-state]", function() {
 			if($(this).attr("data-workflow-state")) {
 				me.set_filter(me.state_fieldname,
 					$(this).attr("data-workflow-state"));
-				me.refresh();
 			}
 		});
 	},
