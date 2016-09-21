@@ -115,6 +115,9 @@ frappe.ui.form.Timeline = Class.extend({
 
 		this.frm.sidebar.refresh_comments();
 
+		#show first item expanded
+		$(this.list.find(".comment-header")[0]).parent().find(".timeline-content-show").toggleClass("hide")
+		$(this.list.find(".comment-header")[0]).find(".expand-icon").toggleClass("octicon-chevron-down octicon-chevron-up")
 	},
 
 	render_timeline_item: function(c) {
