@@ -9,13 +9,13 @@ from frappe.email.smtp import send
 from frappe.utils import markdown
 
 def sendmail_md(recipients, sender=None, msg=None, subject=None, attachments=None, content=None,
-	reply_to=None, cc=(), message_id=None, in_reply_to=None, retry=1):
+	reply_to=None, cc=[], message_id=None, in_reply_to=None, retry=1):
 	"""send markdown email"""
 	sendmail(recipients, sender, markdown(content or msg), subject, attachments,
 		reply_to=reply_to, cc=cc, retry=retry)
 
 def sendmail(recipients, sender='', msg='', subject='[No Subject]', attachments=None, content=None,
-	reply_to=None, cc=(), message_id=None, in_reply_to=None, retry=1):
+	reply_to=None, cc=[], message_id=None, in_reply_to=None, retry=1):
 	"""send an html email as multipart with attachments and all"""
 	mail = get_email(recipients, sender, content or msg, subject, attachments=attachments,
 		reply_to=reply_to, cc=cc)
