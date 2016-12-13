@@ -296,7 +296,9 @@ frappe.views.CommunicationComposer = Class.extend({
 		var attach = $(fields.select_attachments.wrapper);
 
 		var me = this
-		me.attachments = []
+		if (!me.attachments){
+			me.attachments = []
+		}
 
 		var args = {
 			args: {
