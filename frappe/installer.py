@@ -145,6 +145,9 @@ def install_app(name, verbose=False, set_as_patched=True):
 
 	sync_fixtures(name)
 	sync_customizations(name)
+	
+	for after_install_and_fixtures in app_hooks.after_install_and_fixtures or []:
+		frappe.get_attr(after_install_and_fixtures)()
 
 	frappe.flags.in_install = False
 
