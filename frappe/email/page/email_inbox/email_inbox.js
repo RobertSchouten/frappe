@@ -32,33 +32,41 @@ frappe.Inbox = frappe.ui.Listing.extend({
 		this.start = 0;
 		this.cur_page = 1;
 		this.no_result_message = 'No Emails to Display';
-		this.list_settings_key = frappe.session.user + "inbox"
+	    this.list_settings = JSON.parse(frappe.templates.inbox_list_settings);
+	    this.list_settings.list_settings_key = frappe.session.user + "inbox";
+
 		//check if mailto link
-		var email = frappe.get_route_str().split("?")
-			if (email.length>1){
-				window.location.hash = window.location.hash.split("?")[0]
-				new frappe.views.CommunicationComposer({
-					doc: {},
-					recipients: email[1].replace("mailto:",""),
-				});
+		var email = decodeURIComponent(frappe.get_route_str()).split("?");
+		if (email.length>1){
+			window.location.hash = window.location.hash.split("?")[0];
+			if (email.length >2){
+				var params = get_query_params(email[2], true)
 			}
+			new frappe.views.CommunicationComposer({
+				doc: {},
+				recipients: email[1].replace("mailto:",""),
+				cc: params.cc || "",
+				subject: params.subject || "",
+				content: params.body || ""
+			});
+		}
 
 		this.render_sidemenu();
 		if (this.account) {
 			var me = this;
-				// setup listing
-				me.make({
-					doctype: 'Communication',
-					page: me.page,
-					method: 'frappe.desk.reportview.get',
-					get_args: me.get_args,
-					parent: me.page.main,
-					start: 0,
-					show_filters: true
-				});
+			// setup listing
+			me.make({
+				doctype: 'Communication',
+				page: me.page,
+				method: 'frappe.desk.reportview.get',
+				get_args: me.get_args,
+				parent: me.page.main,
+				start: 0,
+				show_filters: true
+			});
 
 			this.render_headers();
-			this.get_list_settings();
+			this.apply_list_settings();
 			this.render_footer();
 			this.render_buttons();
 			this.init_select_all();
@@ -69,7 +77,7 @@ frappe.Inbox = frappe.ui.Listing.extend({
 						frappe.utils.notify(data.account, "you have "+data.number+" new emails", {}, function () {
 							window.focus();
 							me.account = data.account;
-							$(me.page.sidebar).find('.inbox-select[data-account="' + data.account + '" ]').trigger("click")
+							$(me.page.sidebar).find('.inbox-select[data-account="' + data.account_name + '" ]').trigger("click")
 						});
 						if(!me.fresh &&(data.account == me.account || me.account == me.allaccounts)) {
 							me.fresh = true;
@@ -92,9 +100,9 @@ frappe.Inbox = frappe.ui.Listing.extend({
 		}
     },
 	refresh:function(){
-    	var me = this
-		me.filter_list.remove_filter("email_account",false)
-		me.filter_list.remove_filter("sent_or_received",false)
+    	var me = this;
+		me.filter_list.remove_filter("email_account",false);
+		me.filter_list.remove_filter("sent_or_received",false);
 		me.filter_list.default_filters = [["Communication", "communication_type", "=", "Communication"]]
 		//set filters for all account options
 		if(me.account == "Sent"){
@@ -142,32 +150,25 @@ frappe.Inbox = frappe.ui.Listing.extend({
 				me.toggle_actions();
 
 				me.refresh();
-				me.filter_list.loaded_stats = false
-				me.filter_list.hide_filter_list()
-				//if (me.filter_list.reload_stats){me.filter_list.reload_stats()}
+				me.filter_list.loaded_stats = false;
+				me.filter_list.hide_filter_list();
 			});
 		}
     },
-	get_list_settings: function(){
+	apply_list_settings: function(){
 		var me = this;
-		frappe.call({
-			method: 'frappe.email.page.email_inbox.get_list_settings',
-			args: {
-				key: this.list_settings_key	
-			},
-			callback:function(r){
-				if (r && r.message){
-					me.list_settings = JSON.parse(r.message);
-					me.filter_list.clear_filters();
-					$.each(me.list_settings.filters, function(i, f){
-						if(["email_account", "sent_or_received", "communication_type"].indexOf(f[1]) == -1){
-							me.filter_list.add_filter(f[0], f[1], f[2], f[3]);
-						}
-					});
+        if (me.list_settings){
+			me.filter_list.clear_filters();
+			$.each(me.list_settings.filters, function(i, f){
+				if(["email_account", "sent_or_received", "communication_type"].indexOf(f[1]) == -1){
+					me.filter_list.add_filter(f[0], f[1], f[2], f[3]);
 				}
-				me.refresh()
-			}
-		})
+			});
+		}else{
+			//add standard filter for accounts
+			me.filter_list.add_filter("Communication", "deleted", "=", "No");
+		}
+		me.refresh()
 	},
 	get_args: function(){
 		var args = {
@@ -178,7 +179,7 @@ frappe.Inbox = frappe.ui.Listing.extend({
 			filters: this.filter_list.get_filters(),
 			order_by: 'communication_date desc',
 			save_list_settings: true,
-			save_list_key: this.list_settings_key
+			save_list_key: this.list_settings.list_settings_key
 		};
 
 		args.filters = args.filters.concat(this.filter_list.default_filters);
